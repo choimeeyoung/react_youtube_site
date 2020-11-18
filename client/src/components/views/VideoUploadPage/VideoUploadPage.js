@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+// eslint-disable-next-line
 import { Typography, Button, Form, message, Input, Icon } from 'antd';              // css를위한 라이브러리
 import Dropzone from 'react-dropzone';                                              //  이미지 업로드를 위한 라이브러리
+import Axios from 'axios';
+
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -21,7 +24,9 @@ function VideoUploadPage() {
 
     const [VideoTitle, setVideoTitle] = useState("");
     const [Description, setDescription] = useState("");
+    // eslint-disable-next-line
     const [Private, setPrivate] = useState(0);
+    // eslint-disable-next-line
     const [Category, setCategory] = useState("Film & Animation");
 
     const onTitleChange = (e) => {
@@ -40,6 +45,24 @@ function VideoUploadPage() {
         setCategory(e.currentTarget.value);
     }
 
+    const onDrop = (files) => {
+        let formData = new FormData();
+        const config = {
+            header: { 'content-type': 'multipart/form-data' }
+        }
+
+        formData.append("file", files[0]);
+        Axios.post('/api/video/uploadfiles', formData, config)
+            .then(response => {
+                if (response.data.success) {
+                    console.log("안녕하세요aaaaaaaa")
+                    console.log(response.data)
+                } else {
+                    alert("비디오 업로드를 실패했습니다.")
+                }
+            })
+    }
+
     return (
         <div style={{ maxWidth: '700px', margin: '2rem auto' }}>
             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -50,9 +73,9 @@ function VideoUploadPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     { /* Drop zone */}
                     <Dropzone
-                        onDrop
-                        multiple
-                        maxSize>
+                        onDrop={onDrop}
+                        multiple={false}
+                        maxSize={10000000000}>
                         {({ getRootProps, getInputProps }) => (
                             <div style={{
                                 width: '300px', height: '240px', border: '1px solid lightgray', display: 'flex',
@@ -64,9 +87,11 @@ function VideoUploadPage() {
                         )}
 
                     </Dropzone>
+
                     {/* Thumnnail */}
                     <div>
-                        <img src alt />
+                    
+                        {/* <img src alt /> */}
                     </div>
                 </div>
 
@@ -112,3 +137,4 @@ function VideoUploadPage() {
 }
 
 export default VideoUploadPage
+
