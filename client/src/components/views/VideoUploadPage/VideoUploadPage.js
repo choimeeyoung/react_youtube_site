@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-// eslint-disable-next-line
+import Axios from 'axios';
 import { Typography, Button, Form, message, Input, Icon } from 'antd';              // css를위한 라이브러리
 import Dropzone from 'react-dropzone';                                              //  이미지 업로드를 위한 라이브러리
-import Axios from 'axios';
-
 
 const { TextArea } = Input;
 const { Title } = Typography;
 
+// option값들의 Mapping
 const PrivateOptions = [
     { value: 0, label: "Private" },
     { value: 1, label: "Public" },
@@ -24,9 +23,12 @@ function VideoUploadPage() {
 
     const [VideoTitle, setVideoTitle] = useState("");
     const [Description, setDescription] = useState("");
-    // eslint-disable-next-line
+
+    const [ThumbnailPath, setThumnailPath] = useState("");
+    const [FileDuration, setFileDuration] = useState("");
+    const [FilePath,setFilePath] = useState("");
+
     const [Private, setPrivate] = useState(0);
-    // eslint-disable-next-line
     const [Category, setCategory] = useState("Film & Animation");
 
     const onTitleChange = (e) => {
@@ -47,16 +49,32 @@ function VideoUploadPage() {
 
     const onDrop = (files) => {
         let formData = new FormData();
+
+        // 파일전송을 위해서 정의
         const config = {
             header: { 'content-type': 'multipart/form-data' }
         }
 
         formData.append("file", files[0]);
-        Axios.post('/api/video/uploadfiles', formData, config)
+        Axios.post('/api/video/uploadfiles', formData, config)                              // Client로 부터 전달받은 파일을 upload 폴더에 저장
             .then(response => {
                 if (response.data.success) {
-                    console.log("안녕하세요aaaaaaaa")
-                    console.log(response.data)
+                    let variable = {
+                        filePath: response.data.filePath,
+                        fileName: response.data.fileName
+                    }
+                    
+                    setFilePath(response.data.filePath);
+
+                    Axios.post('/api/video/thumbnail', variable)                            // Thumbnail의 생성 / 저장 / 경로 얻어오기
+                        .then(response => {
+                            if (response.data.success) {
+                                setThumnailPath(response.data.thumbnailPath);
+                                setFileDuration(response.data.fileDuration);
+                            } else {
+                                alert("썸네일 생성에 실패 하였습니다.")
+                            }
+                        })
                 } else {
                     alert("비디오 업로드를 실패했습니다.")
                 }
@@ -70,8 +88,7 @@ function VideoUploadPage() {
             </div>
 
             <Form onSubmit>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    { /* Drop zone */}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>                   
                     <Dropzone
                         onDrop={onDrop}
                         multiple={false}
@@ -85,14 +102,13 @@ function VideoUploadPage() {
                                 <Icon type="plus" style={{ fontSize: '3rem' }} />
                             </div>
                         )}
-
                     </Dropzone>
 
-                    {/* Thumnnail */}
-                    <div>
-                    
-                        {/* <img src alt /> */}
-                    </div>
+                    {ThumbnailPath &&                           // ThumbnailPath가 True 인 경우만 실행
+                        <div>
+                            <img src={`http://localhost:5000/${ThumbnailPath}`} alt="thumbnail" />
+                        </div>
+                    }
                 </div>
 
                 <br />
