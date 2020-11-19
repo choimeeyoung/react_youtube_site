@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Axios from 'axios';
 import { Typography, Button, Form, message, Input, Icon } from 'antd';              // css를위한 라이브러리
 import Dropzone from 'react-dropzone';                                              //  이미지 업로드를 위한 라이브러리
+import { useSelector } from 'react-redux';
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -19,17 +20,17 @@ const CategoryOptions = [
     { value: 3, label: "Pets & Animals" }
 ];
 
-function VideoUploadPage() {
-
+function VideoUploadPage(props) {
+    let user = useSelector(state => state.user);
     const [VideoTitle, setVideoTitle] = useState("");
     const [Description, setDescription] = useState("");
 
-    const [ThumbnailPath, setThumnailPath] = useState("");
-    const [FileDuration, setFileDuration] = useState("");
-    const [FilePath,setFilePath] = useState("");
-
     const [Private, setPrivate] = useState(0);
     const [Category, setCategory] = useState("Film & Animation");
+
+    const [FilePath, setFilePath] = useState("");
+    const [FileDuration, setFileDuration] = useState("");
+    const [Thumbnail, setThumnail] = useState("");
 
     const onTitleChange = (e) => {
         setVideoTitle(e.currentTarget.value);
@@ -63,13 +64,13 @@ function VideoUploadPage() {
                         filePath: response.data.filePath,
                         fileName: response.data.fileName
                     }
-                    
+
                     setFilePath(response.data.filePath);
 
-                    Axios.post('/api/video/thumbnail', variable)                            // Thumbnail의 생성 / 저장 / 경로 얻어오기
+                    Axios.post('/api/video/thumbnail', variable)                            // Thumbnail의 생성 / 저장 / 경로 얻어오기 
                         .then(response => {
                             if (response.data.success) {
-                                setThumnailPath(response.data.thumbnailPath);
+                                setThumnail(response.data.thumbnail);
                                 setFileDuration(response.data.fileDuration);
                             } else {
                                 alert("썸네일 생성에 실패 하였습니다.")
@@ -81,14 +82,49 @@ function VideoUploadPage() {
             })
     }
 
+    const onSubmit = (e) => {
+        // 원래 실행하려고 하였던 것들을 방지 할 수 있다.
+        e.preventDefault();
+
+        if(user.userData && !user.userData.isAuth){
+            return alert("로그인후 이용 가능한 서비스 입니다.");
+        }
+
+        if (VideoTitle === "" || Description === "" ||
+        Category === "" || FilePath === "" ||
+        FileDuration === "" || Thumbnail === "") {
+            return alert('모든 공란을 채워주세요!');
+        }
+
+        const variables = {
+            writer: user.userData._id,
+            title: VideoTitle,
+            description: Description,
+            private: Private,
+            category: Category,
+            filePath: FilePath,
+            fileDuration: FileDuration,
+            thumbnail: Thumbnail
+        }
+
+        Axios.post("/api/video/uploadVideo", variables).then(response => {
+            if (response.data.success) {
+                alert("VideoUpload에 성공하였습니다.");
+                props.history.push("/");
+            } else {
+                alert("VideoUpload에 살패하였습니다.")
+            }
+        })
+    }
+
     return (
         <div style={{ maxWidth: '700px', margin: '2rem auto' }}>
             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <Title level={2}>Upload Video</Title>
             </div>
 
-            <Form onSubmit>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>                   
+            <Form onSubmit={onSubmit}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Dropzone
                         onDrop={onDrop}
                         multiple={false}
@@ -104,9 +140,9 @@ function VideoUploadPage() {
                         )}
                     </Dropzone>
 
-                    {ThumbnailPath &&                           // ThumbnailPath가 True 인 경우만 실행
+                    {Thumbnail &&                           // ThumbnailPath가 True 인 경우만 실행
                         <div>
-                            <img src={`http://localhost:5000/${ThumbnailPath}`} alt="thumbnail" />
+                            <img src={`http://localhost:5000/${Thumbnail}`} alt="thumbnail" />
                         </div>
                     }
                 </div>
@@ -144,7 +180,7 @@ function VideoUploadPage() {
                 <br />
                 <br />
 
-                <Button type="primary" size="large" onClick>
+                <Button type="primary" size="large" onClick={onSubmit}>
                     Submit
                 </Button>
             </Form>
